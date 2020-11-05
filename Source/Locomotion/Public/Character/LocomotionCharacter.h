@@ -7,13 +7,10 @@
 #include "GameFramework/Character.h"
 #include "Enumerations/CardinalDirection.h"
 #include "Enumerations/Gait.h"
-#include "Enumerations/LocomotionActivity.h"
 #include "Enumerations/MovementType.h"
 #include "Enumerations/RotationMode.h"
 #include "Enumerations/Stance.h"
 #include "Enumerations/WallClimbType.h"
-#include "Enumerations/WeaponFireMode.h"
-#include "Enumerations/WeaponState.h"
 #include "Enumerations/WeaponType.h"
 #include "Structures/ClimbableLedgeData.h"
 #include "Structures/WallClimbAssetData.h"
@@ -110,7 +107,7 @@ public:
 	/* --- RAGDOLL CONFIGURATION --- */
 
 	/* The power of the impulse applied to ImpulseBoneName. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ragdoll")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Locomotion Character|Ragdoll")
 	float ImpulseModifier;
 
 protected:
@@ -123,6 +120,9 @@ protected:
 	This is different from bIsMoving, since a character may not have movement input but still be
 	moving (e.g. decelerating). */
 	bool bHasMovementInput;
+
+	/* Whether the character should try to sprint. */
+	bool bShouldSprint;
 
 	/* Direction of the movement input. */
 	FVector MovementInput;
@@ -154,9 +154,6 @@ protected:
 	/* The direction the character is current going in (an angle between 0 and 360). */
 	float Direction;
 
-	/* Whether the character should try to sprint. */
-	bool bShouldSprint;
-
 	/* The value of the forward axis (usually when moving forward or backward). */
 	float ForwardAxisValue;
 
@@ -165,18 +162,6 @@ protected:
 
 	/* Whether the character is rotated north, south, east or west. */
 	ECardinalDirection CardinalDirection;
-
-	/* The weapon type which is equipped by this character. */
-	EWeaponType WeaponType;
-
-	/* This character's current locomotion activity. */
-	ELocomotionActivity LocomotionActivity;
-
-	/* This character's previous locomotion activity. */
-	ELocomotionActivity LocomotionActivityPrev;
-
-	/* This character's most recently pending locomotion activity. */
-	ELocomotionActivity LocomotionActivityPending;
 
 	/* This character's allowed stances. By default, all are allowed. */
 	TArray<EStance> AllowedStances;
@@ -235,30 +220,14 @@ private:
 	/* Whether the character was previously grounded, falling, ragdolling or wall walking. */
 	EMovementType MovementTypePrev;
 
-	/* --- START DEPCREATED --- */
-	/* The state of what the character is doing with their weapon. */
-	EWeaponState WeaponState;
-
-	/* The fire mode of the character's weapon. */
-	EWeaponFireMode WeaponFireMode;
-	/* --- END DEPCREATED --- */
-
 	/* Whether or not the character is aiming. */
 	bool bIsAiming;
 
-	/* Whether or not the locomotion activity can be currenlty changed. */
-	bool bIsLocomotionActivityChangeEnabled;
+	/* The index of upper-body layering. This allows for the linking of anim graphs to play on a locomotion character. */
+	int32 UpperBodyLayeringIndex;
 
-	/* Whether or not the character is waiting for LocomotionActivityChangeEnabled = true. */
-	bool bIsWaitingForLocomotionActivityChange;
-
-	/* --- START DEPCREATED --- */
-	/* Whether or not this character has a weapon currently equip. */
-	bool bHasWeaponCurrentlyEquip;
-
-	/* Whether or not thie character is currently having a phone conversation. */
-	bool bIsHavingPhoneConversation;
-	/* --- END DEPCREATED --- */
+	/* The index of full-body layering. This allows for the linking of anim graphs to play on a locomotion character. */
+	int32 FullBodyLayeringIndex;
 
 	/* --- WALL CLIMBING RELATED --- */
 
@@ -281,7 +250,7 @@ private:
 	UPROPERTY()
 	FOnTimelineFloat OnWallClimbingTimelineCallback;
 
-	/* TIMER RELATED */
+	/* --- TIMER RELATED --- */
 
 	/* Handle for calling OnLandedTimerHandleEnd */
 	FTimerHandle LandedTimerHandle;
@@ -305,7 +274,7 @@ private:
 	bool bGateOneOpen;
 	bool bGateTwoOpen;
 
-/* FUNCTIONS */
+/* --- FUNCTIONS --- */
 public:
 	/* --- REQUIRED --- */
 
@@ -347,29 +316,17 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Locomotion Character|Setters", meta = (DisplayName = "Set Stance"))
 	void SetStance(EStance NewStance);
 
-	/** Set WeaponState to NewWeaponState. 
-	  * @param NewWeaponState - The EWeaponState to set.
+	/** Sets UpperBodyLayeringIndex to NewUpperBodyLayeringIndex.
+	  * @param NewUpperBodyLayeringIndex - The new upper body layering index to set. Clamped to a minimum of 0.
 	  */
-	UFUNCTION(BlueprintCallable, Category = "Locomotion Character|Setters", meta = (DisplayName = "Set Weapon State"))
-	void SetWeaponState(EWeaponState NewWeaponState);
+	UFUNCTION(BlueprintCallable, Category = "Locomotion Character|Setters", meta = (DisplayName = "Set Upper Body Layering Index"))
+	void SetUpperBodyLayeringIndex(int32 NewUpperBodyLayeringIndex);
 
-	/** Set WeaponType to NewWeaponType.
-	  * @param NewWeaponType - The EWeaponType to set.
+	/** Sets FullBodyLayeringIndex to NewFullBodyLayeringIndex.
+	  * @param NewFullBodyLayeringIndex - The new upper body layering index to set. Clamped to a minimum of 0.
 	  */
-	UFUNCTION(BlueprintCallable, Category = "Locomotion Character|Setters", meta = (DisplayName = "Set Weapon Type"))
-	void SetWeaponType(EWeaponType NewWeaponType);
-
-	/** Sets LocomotionActivity to NewLocomotionActivity
-	  * @param NewLocomotionActivity - The ELocomotionActivity to set.
-	  */
-	UFUNCTION(BlueprintCallable, Category = "Locomotion Character|Setters", meta = (DisplayName = "Set Locomotion Activity"))
-	void SetLocomotionActivity(ELocomotionActivity NewLocomotionActivity);
-
-	/** Sets IsLocomotionActivityChangeEnabled to NewLocomotionActivityChangeEnabled.
-	  * @param NewLocomotionActivityChangeEnabled - The IsLocomotionActivityChangeEnabled to set.
-	  */
-	UFUNCTION(BlueprintCallable, Category = "Locomotion Character|Setters", meta = (DisplayName = "Set Locomotion Activity Enabled"))
-	void SetLocomotionActivityEnabled(bool NewLocomotionActivityChangeEnabled);
+	UFUNCTION(BlueprintCallable, Category = "Locomotion Character|Setters", meta = (DisplayName = "Set Upper Body Layering Index"))
+	void SetFullBodyLayeringIndex(int32 NewFullBodyLayeringIndex);
 
 	/** Sets allowed Gaits and Stances on this character. 
 	  * Forces the character to switch to the first gait in NewAllowedGaits and the first stance in NewAllowedStances if their
@@ -420,11 +377,17 @@ public:
 	  * @parma CurrentMovementType - Character's current movement type.
 	  * @param PreviousMovementType - Character's previous movement type.
 	  * @param CurrentStance - Character's current stance.
-	  * @param CurrentLocomotionActivity - Character's current locomotion activity.
 	  * @param bIsCurrentlyAiming - Whether or not the character is currently aiming.
 	  */
 	UFUNCTION(BlueprintCallable, Category = "Locomotion Character|Getters", meta = (DisplayName = "Get Movement States"))
-	void GetMovementStates(ERotationMode& CurrentRotationMode, EGait& CurrentGait, EMovementType& CurrentMovementType, EMovementType& PreviousMovementType, EStance& CurrentStance, ELocomotionActivity& CurrentLocomotionActivity, bool& bIsCurrentlyAiming);
+	void GetMovementStates(ERotationMode& CurrentRotationMode, EGait& CurrentGait, EMovementType& CurrentMovementType, EMovementType& PreviousMovementType, EStance& CurrentStance, bool& bIsCurrentlyAiming);
+
+	/** Gets current upper body and full body layering indicies. All parameters are mutable.
+	  * @param CurrentUpperBodyLayeringIndex - Character's current upper body layering index.
+	  * @param CurrentFullBodyLayeringIndex - Character's current full body layering index.
+	  */
+	UFUNCTION(BlueprintCallable, Category = "Locomotion Character|Getters", meta = (DisplayName = "Get Layering Indicies"))
+	void GetLayeringIndicies(int32& CurrentUpperBodyLayeringIndex, int32& CurrentFullBodyLayeringIndex);
 
 	/* --- WALL CLIMBING/MANTLING SYSTEM --- */
 

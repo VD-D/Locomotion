@@ -55,13 +55,7 @@ ALocomotionCharacter::ALocomotionCharacter()
 	RotationMode = ERotationMode::VelocityDirection;
 	MovementType = EMovementType::Grounded;
 	MovementTypePrev = EMovementType::None;
-	LocomotionActivity = ELocomotionActivity::Base;
-	WeaponFireMode = EWeaponFireMode::None;
-	WeaponState = EWeaponState::None;
-	WeaponType = EWeaponType::None;
 	bIsAiming = false;
-	bHasWeaponCurrentlyEquip = false;
-	bIsLocomotionActivityChangeEnabled = true;
 
 	AllowedGaits.Add(EGait::Walking);
 	AllowedGaits.Add(EGait::Running);
@@ -146,23 +140,6 @@ void ALocomotionCharacter::Tick(float DeltaTime)
 		break;
 	}
 	}
-
-	if (bIsWaitingForLocomotionActivityChange && bIsLocomotionActivityChangeEnabled)
-	{
-		bIsWaitingForLocomotionActivityChange = false;
-		if (LocomotionActivityPending != LocomotionActivity)
-		{
-			ULocomotionAnimInstance* LAI = Cast<ULocomotionAnimInstance>(GetMesh()->GetAnimInstance());
-			LocomotionActivityPrev = LocomotionActivity;
-			LocomotionActivity = LocomotionActivityPending;
-
-			if (LAI)
-			{
-				LAI->SetLocomotionActivity(LocomotionActivity);
-				LAI->SetLocomotionActivityPrev(LocomotionActivityPrev);
-			}
-		}
-	}
 }
 
 void ALocomotionCharacter::SetRotationMode(ERotationMode NewRotationMode)
@@ -245,55 +222,24 @@ void ALocomotionCharacter::SetStance(EStance NewStance)
 	if (LAIPP != nullptr) LAIPP->SetStance(Stance);
 }
 
-void ALocomotionCharacter::SetWeaponState(EWeaponState NewWeaponState)
+void ALocomotionCharacter::SetUpperBodyLayeringIndex(int32 NewUpperBodyLayeringIndex)
 {
-	if (NewWeaponState != WeaponState)
-	{
-		WeaponState = NewWeaponState;
-		ULocomotionAnimInstance* LAI = Cast<ULocomotionAnimInstance>(GetMesh()->GetAnimInstance());
-		if (LAI != nullptr) LAI->SetWeaponState(WeaponState);
-	}
+	int32 LocalIndex = 0;
+	if (NewUpperBodyLayeringIndex > 0) LocalIndex = NewUpperBodyLayeringIndex;
+	UpperBodyLayeringIndex = LocalIndex;
+
+	ULocomotionAnimInstance* LAI = Cast<ULocomotionAnimInstance>(GetMesh()->GetAnimInstance());
+	if (LAI != nullptr) LAI->SetUpperBodyLayeringIndex(UpperBodyLayeringIndex);
 }
 
-void ALocomotionCharacter::SetWeaponType(EWeaponType NewWeaponType)
+void ALocomotionCharacter::SetFullBodyLayeringIndex(int32 NewFullBodyLayeringIndex)
 {
-	if (NewWeaponType != WeaponType)
-	{
-		WeaponType = NewWeaponType;
-		ULocomotionAnimInstance* LAI = Cast<ULocomotionAnimInstance>(GetMesh()->GetAnimInstance());
-		if (LAI != nullptr) LAI->SetWeaponType(WeaponType);
-	}
-}
+	int32 LocalIndex = 0;
+	if (NewFullBodyLayeringIndex > 0) LocalIndex = NewFullBodyLayeringIndex;
+	FullBodyLayeringIndex = LocalIndex;
 
-void ALocomotionCharacter::SetLocomotionActivity(ELocomotionActivity NewLocomotionActivity)
-{
-	if (LocomotionActivity == ELocomotionActivity::Sitting)
-	{
-		bIsWaitingForLocomotionActivityChange = true;
-		bIsLocomotionActivityChangeEnabled = false;
-		LocomotionActivityPending = NewLocomotionActivity;
-	}
-
-	if (bIsLocomotionActivityChangeEnabled)
-	{
-		if (NewLocomotionActivity != LocomotionActivity)
-		{
-			ULocomotionAnimInstance* LAI = Cast<ULocomotionAnimInstance>(GetMesh()->GetAnimInstance());
-			LocomotionActivityPrev = LocomotionActivity;
-			LocomotionActivity = NewLocomotionActivity;
-
-			if (LAI)
-			{
-				LAI->SetLocomotionActivity(NewLocomotionActivity);
-				LAI->SetLocomotionActivityPrev(LocomotionActivityPrev);
-			}
-		}
-	}
-}
-
-void ALocomotionCharacter::SetLocomotionActivityEnabled(bool NewLocomotionActivityChangeEnabled)
-{
-	bIsLocomotionActivityChangeEnabled = NewLocomotionActivityChangeEnabled;
+	ULocomotionAnimInstance* LAI = Cast<ULocomotionAnimInstance>(GetMesh()->GetAnimInstance());
+	if (LAI != nullptr) LAI->SetFullBodyLayeringIndex(FullBodyLayeringIndex);
 }
 
 void ALocomotionCharacter::SetAllowedMovementModels(const TArray<EGait> NewAllowedGaits, const TArray<EStance> NewAllowedStances)
@@ -407,15 +353,20 @@ void ALocomotionCharacter::GetMovementProperties(FVector & CurrentVelocity, FRot
 	bCurrentHasMovementInput = bHasMovementInput;
 }
 
-void ALocomotionCharacter::GetMovementStates(ERotationMode & CurrentRotationMode, EGait & CurrentGait, EMovementType & CurrentMovementType, EMovementType & PreviousMovementType, EStance & CurrentStance, ELocomotionActivity & CurrentLocomotionActivity, bool & bIsCurrentlyAiming)
+void ALocomotionCharacter::GetMovementStates(ERotationMode & CurrentRotationMode, EGait & CurrentGait, EMovementType & CurrentMovementType, EMovementType & PreviousMovementType, EStance & CurrentStance, bool & bIsCurrentlyAiming)
 {
 	CurrentRotationMode = RotationMode;
 	CurrentGait = Gait;
 	CurrentMovementType = MovementType;
 	PreviousMovementType = MovementTypePrev;
 	CurrentStance = Stance;
-	CurrentLocomotionActivity = LocomotionActivity;
 	bIsCurrentlyAiming = bIsAiming;
+}
+
+void ALocomotionCharacter::GetLayeringIndicies(int32 & CurrentUpperBodyLayeringIndex, int32 & CurrentFullBodyLayeringIndex)
+{
+	CurrentUpperBodyLayeringIndex = UpperBodyLayeringIndex;
+	CurrentFullBodyLayeringIndex = FullBodyLayeringIndex;
 }
 
 void ALocomotionCharacter::WantsToClimb()

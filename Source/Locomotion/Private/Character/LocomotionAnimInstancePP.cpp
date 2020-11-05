@@ -21,12 +21,9 @@ void ULocomotionAnimInstancePP::InitAnimationPostProcess()
 	{
 		ERotationMode DummyRotMode;
 		EGait DummyGait;
-		ELocomotionActivity DummyLocomotionActivity;
 		EMovementType DummyMovementType;
 		bool DummyIsAiming;
-		CharacterReference->GetMovementStates(DummyRotMode, DummyGait, MovementType, DummyMovementType, Stance, DummyLocomotionActivity, DummyIsAiming);
-		// MovementType = CharacterReference->GetMovementType();
-		// Stance = CharacterReference->GetStance();
+		CharacterReference->GetMovementStates(DummyRotMode, DummyGait, MovementType, DummyMovementType, Stance, DummyIsAiming);
 	}
 	bEnableFootIK = true;
 	LeftFootOffset = FVector(0.0f, 0.0f, 0.0f);

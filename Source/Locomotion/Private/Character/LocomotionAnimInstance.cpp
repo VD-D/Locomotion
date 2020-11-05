@@ -70,9 +70,14 @@ void ULocomotionAnimInstance::SetPivotParameters(FPivotParameters NewPivotParame
 	PivotParams = NewPivotParameters;
 }
 
-void ULocomotionAnimInstance::SetIsSitting(bool NewIsSitting)
+void ULocomotionAnimInstance::SetUpperBodyLayeringIndex(int32 NewUpperBodyLayeringIndex)
 {
-	bIsSitting = NewIsSitting;
+	UpperBodyLayeringIndex = NewUpperBodyLayeringIndex;
+}
+
+void ULocomotionAnimInstance::SetFullBodyLayeringIndex(int32 NewFullBodyLayeringIndex)
+{
+	FullBodyLayeringIndex = NewFullBodyLayeringIndex;
 }
 
 void ULocomotionAnimInstance::SetUseHeadRotation(bool NewUseHeadRotation)
@@ -83,47 +88,6 @@ void ULocomotionAnimInstance::SetUseHeadRotation(bool NewUseHeadRotation)
 void ULocomotionAnimInstance::SetHeadLookAtLocation(FVector NewHeadLookAtLocation)
 {
 	HeadLookAtLocation = NewHeadLookAtLocation;
-}
-
-void ULocomotionAnimInstance::SetIsHavingPhoneConversation(bool NewIsHavingPhoneConversation)
-{
-	bIsHavingPhoneConversation = NewIsHavingPhoneConversation;
-}
-
-void ULocomotionAnimInstance::SetLocomotionActivity(ELocomotionActivity NewLocomotionActivity)
-{
-	LocomotionActivity = NewLocomotionActivity;
-	if (LocomotionActivity == ELocomotionActivity::Sitting) bIsSitting = true;
-}
-
-void ULocomotionAnimInstance::SetLocomotionActivityPrev(ELocomotionActivity NewLocomotionActivityPrev)
-{
-	LocomotionActivityPrev = NewLocomotionActivityPrev;
-}
-
-void ULocomotionAnimInstance::SetTargetedActor(AActor * ActorToSet)
-{
-	TargetedActor = ActorToSet;
-}
-
-void ULocomotionAnimInstance::SetWeaponFireMode(EWeaponFireMode NewWeaponFireMode)
-{
-	WeaponFireMode = NewWeaponFireMode;
-}
-
-void ULocomotionAnimInstance::SetWeaponType(EWeaponType NewWeaponType)
-{
-	WeaponType = NewWeaponType;
-}
-
-void ULocomotionAnimInstance::SetWeaponState(EWeaponState NewWeaponState)
-{
-	WeaponState = NewWeaponState;
-}
-
-void ULocomotionAnimInstance::SetShouldFire(bool NewShouldFire)
-{
-	bShouldFire = NewShouldFire;
 }
 
 FWallClimbAssetData ULocomotionAnimInstance::GetWallClimbDataFromType(EWallClimbType WallClimbType)
@@ -137,34 +101,9 @@ FWallClimbAssetData ULocomotionAnimInstance::GetWallClimbDataFromType(EWallClimb
 		return WallClimbTwoHandedDefault;
 
 	case EWallClimbType::Low:
-		switch (WeaponType)
-		{
-		case EWeaponType::None:
-			return WallClimbOneHandedDefault;
-
-		case EWeaponType::IronsightsRifle:
-			return WallClimbOneHandedRight;
-
-		case EWeaponType::HipRifle:
-			return WallClimbOneHandedRight;
-		}
-		break;
+		return WallClimbOneHandedDefault;
 	}
 	return WallClimbTwoHandedDefault;
-}
-
-void ULocomotionAnimInstance::PlayWeaponMontages(FName SectionName)
-{
-	switch (WeaponType)
-	{
-	case EWeaponType::IronsightsRifle:
-		PlayMontageIfValid(RifleIronsightsMontage, SectionName);
-		break;
-
-	case EWeaponType::HipRifle:
-		PlayMontageIfValid(RifleHipMontage, SectionName);
-		break;
-	}
 }
 
 void ULocomotionAnimInstance::NotifiedTurningInPlace(UAnimMontage * TurnInPlaceMontage, bool ShouldTurnInPlace, bool TurningInPlace, bool TurningRight)
@@ -177,39 +116,36 @@ void ULocomotionAnimInstance::NotifiedTurningInPlace(UAnimMontage * TurnInPlaceM
 
 void ULocomotionAnimInstance::InitAnimation()
 {
-	CharacterReference = Cast<ALocomotionCharacter>(TryGetPawnOwner());
+	ALocomotionCharacter* CharacterReference = Cast<ALocomotionCharacter>(TryGetPawnOwner());
 
 	if (CharacterReference)
 	{
-		CapsuleComponentReference = CharacterReference->GetCapsuleComponent();
-		CharacterMovementReference = CharacterReference->GetCharacterMovement();
+
 		WalkingSpeed = CharacterReference->WalkingSpeed;
 		RunningSpeed = CharacterReference->RunningSpeed;
 		SprintingSpeed = CharacterReference->SprintingSpeed;
 		CrouchingSpeed = CharacterReference->CrouchingSpeed;
 
-		CharacterReference->GetMovementStates(RotationMode, Gait, MovementType, MovementTypePrevious, Stance, LocomotionActivity, bIsAiming);
+		CharacterReference->GetMovementStates(RotationMode, Gait, MovementType, MovementTypePrevious, Stance, bIsAiming);
 
 		AimOffset = FVector2D(0.0f, 0.0f);
 		CurrentSpeed = 0.0f;
 		GaitMultiplier = 0.0f;
 		bTurningInPlace = false;
-		WeaponType = EWeaponType::None;
-		WeaponAimOffsetAlpha = 0.0f;
 	}
 }
 
 void ULocomotionAnimInstance::UpdateAnimation(float DeltaTimeX)
 {
-	CharacterReference = Cast<ALocomotionCharacter>(TryGetPawnOwner());
-	if (IsValid(CharacterReference)) { // && DeltaTimeX != 0.0f
+	ALocomotionCharacter* CharacterReference = Cast<ALocomotionCharacter>(TryGetPawnOwner());
+	if (IsValid(CharacterReference)) {
+
+		UCharacterMovementComponent* CharacterMovementReference = CharacterReference->GetCharacterMovement();
+		UCapsuleComponent* CapsuleComponentReference = CharacterReference->GetCapsuleComponent();
 
 		CharacterReference->GetMovementProperties(Velocity, CharacterRotation, LastVelocityRotation, LastMovementInputRotation, LookingRotation, Direction, TargetCharacterRotationDifference, MovementInputVelocityDifference, AimYawDelta, AimYawRate, bIsMoving, bHasMovementInput);
 		CalculateLookingAimOffset();
-		CalculateTargetingAimOffset();
 		CalculateHeadRotation();
-		CalculateWeaponAimAlpha();
-		CalculateFabrikAdjustAndAlpha();
 
 		switch (MovementType)
 		{
@@ -218,7 +154,7 @@ void ULocomotionAnimInstance::UpdateAnimation(float DeltaTimeX)
 			if (bIsMoving)
 			{
 				CalculateGaitMultiplier();
-				CalculateAnimPlayRates(150.0f, 350.0f, 600.0f, 150.0f);
+				CalculateAnimPlayRates(150.0f, 350.0f, 600.0f, 150.0f, CapsuleComponentReference);
 				CalculateMovementDirection(-90.0f, 90.0f, 5.0f);
 			}
 			else
@@ -407,20 +343,6 @@ void ULocomotionAnimInstance::CalculateLookingAimOffset()
 	}
 }
 
-void ULocomotionAnimInstance::CalculateTargetingAimOffset()
-{
-	if (TargetedActor)
-	{
-		FRotator R = UKismetMathLibrary::FindLookAtRotation(GetOwningActor()->GetActorLocation(), TargetedActor->GetActorLocation());
-		FRotator D = UKismetMathLibrary::NormalizedDeltaRotator(R, CharacterRotation);
-		LookingAtAimOffset = UKismetMathLibrary::Vector2DInterpTo(LookingAtAimOffset, FVector2D(UKismetMathLibrary::ClampAngle(D.Yaw - 12.0f, -90.0f, 90.0f), D.Pitch + 6.0f), GetWorld()->GetDeltaSeconds(), 10.0f);
-	}
-	else
-	{
-		LookingAtAimOffset = UKismetMathLibrary::Vector2DInterpTo(LookingAtAimOffset, FVector2D(0.0f, 0.0f), GetWorld()->GetDeltaSeconds(), 10.0f);
-	}
-}
-
 void ULocomotionAnimInstance::CalculateHeadRotation()
 {
 	if (GetWorld() == nullptr) return;
@@ -459,7 +381,7 @@ void ULocomotionAnimInstance::CalculateGaitMultiplier()
 	}
 }
 
-void ULocomotionAnimInstance::CalculateAnimPlayRates(float WalkAnimSpeed, float RunAnimSpeed, float SprintAnimSpeed, float CrouchAnimSpeed)
+void ULocomotionAnimInstance::CalculateAnimPlayRates(float WalkAnimSpeed, float RunAnimSpeed, float SprintAnimSpeed, float CrouchAnimSpeed, UCapsuleComponent * CapsuleComponentReference)
 {
 	float LocalCapsuleComponentScale = CapsuleComponentReference->GetComponentScale().Z;
 	if (GaitMultiplier > 2.0f)
@@ -499,28 +421,6 @@ void ULocomotionAnimInstance::CalculateMovementDirection(float DirectionThreshol
 	{
 		MovementDirection = EMovementDirection::Backward;
 	}
-}
-
-void ULocomotionAnimInstance::CalculateWeaponAimAlpha()
-{
-	if (WeaponState == EWeaponState::RaisingToHip || WeaponState == EWeaponState::RaisingToIronsights)
-	{
-		WeaponAimOffsetAlpha = UKismetMathLibrary::FInterpTo(WeaponAimOffsetAlpha, 1.0f, GetWorld()->GetDeltaSeconds(), 3.0f);
-	}
-	else if (WeaponState == EWeaponState::AtHip || WeaponState == EWeaponState::AtIronsights)
-	{
-		WeaponAimOffsetAlpha = UKismetMathLibrary::FInterpTo(WeaponAimOffsetAlpha, 1.0f, GetWorld()->GetDeltaSeconds(), 15.0f);
-	}
-	else if (WeaponState == EWeaponState::LoweringFromHip || WeaponState == EWeaponState::LoweringFromIronsights)
-	{
-		WeaponAimOffsetAlpha = UKismetMathLibrary::FInterpTo(WeaponAimOffsetAlpha, 0.0f, GetWorld()->GetDeltaSeconds(), 45.0f);
-	}
-}
-
-void ULocomotionAnimInstance::CalculateFabrikAdjustAndAlpha()
-{
-
-	/* TO BE IMPLEMENTED */
 }
 
 void ULocomotionAnimInstance::TurnInPlaceResponsive(float AimYawLimit, UAnimMontage * TurnLeftMontage, UAnimMontage * TurnRightMontage, float PlayRate)

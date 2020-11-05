@@ -13,9 +13,6 @@
 #include "Enumerations/RotationMode.h"
 #include "Enumerations/Stance.h"
 #include "Enumerations/WallClimbType.h"
-#include "Enumerations/WeaponFireMode.h"
-#include "Enumerations/WeaponState.h"
-#include "Enumerations/WeaponType.h"
 #include "Structures/PivotParameters.h"
 #include "Structures/WallClimbAssetData.h"
 #include "LocomotionAnimInstance.generated.h"
@@ -63,12 +60,6 @@ public:
 	/* Montage for turning ninety degrees to the left while crouching. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "LocomotionCharacter|Animations|Crouching Turn 90 Degrees")
 	class UAnimMontage* CrouchingTurnLeftNinetyDegrees;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "LocomotionCharacter|Animations|Weapon Montages")
-	class UAnimMontage* RifleIronsightsMontage;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "LocomotionCharacter|Animations|Weapon Montages")
-	class UAnimMontage* RifleHipMontage;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "LocomotionCharacter|Animations|Wall Climb Montages|1-Handed")
 	FWallClimbAssetData WallClimbOneHandedDefault;
@@ -176,28 +167,10 @@ protected:
 	EIdleEntryState IdleEntryState;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Locomotion|UsefulForAnimGraph")
-	ELocomotionActivity LocomotionActivity;
+	int32 UpperBodyLayeringIndex;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Locomotion|UsefulForAnimGraph")
-	ELocomotionActivity LocomotionActivityPrev;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Locomotion|UsefulForAnimGraph")
-	EWeaponFireMode WeaponFireMode;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Locomotion|UsefulForAnimGraph")
-	EWeaponType WeaponType;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Locomotion|UsefulForAnimGraph")
-	EWeaponState WeaponState;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Locomotion|UsefulForAnimGraph")
-	bool bShouldFire;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Locomotion|UsefulForAnimGraph")
-	bool bIsSitting;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Locomotion|UsefulForAnimGraph")
-	bool bIsHavingPhoneConversation;
+	int32 FullBodyLayeringIndex;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Locomotion|UsefulForAnimGraph")
 	float GaitMultiplier;
@@ -234,15 +207,6 @@ protected:
 
 	UPROPERTY(BlueprintReadOnly, Category = "Locomotion|UsefulForAnimGraph")
 	float FlailRate;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Locomotion|UsefulForAnimGraph")
-	float WeaponAimOffsetAlpha;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Locomotion|UsefulForAnimGraph")
-	float FABRIKAlpha;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Locomotion|UsefulForAnimGraph")
-	FTransform LeftHandAdjust;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Locomotion|UsefulForAnimGraph")
 	bool bIsAiming;
@@ -303,31 +267,10 @@ protected:
 
 
 private:
-	/* --- REFERENCES --- */
-
-	/* --- START DEPRECATED --- */
-
-	/* Pointer to the Locomotion Character controlled by this anim instance. */
-	UPROPERTY()
-	class ALocomotionCharacter* CharacterReference;
-
-	/* Pointer to the Locomotion Character's capsule component. */
-	UPROPERTY()
-	class UCapsuleComponent* CapsuleComponentReference;
-
-	/* Pointer to the Locomotion Character's character movement component. */
-	UPROPERTY()
-	class UCharacterMovementComponent* CharacterMovementReference;
-
-	/* Actor which is being targeted by the owner of this AnimInstance. */
-	AActor* TargetedActor;
-
-	/* --- END DEPRECATED --- */
+	/* --- PRIVATE STATE VALUES --- */
 
 	/* Location which is to be looked at by this character. Only relevant if bShouldUseHeadRotation = true. */
 	FVector HeadLookAtLocation;
-
-	/* --- PRIVATE STATE VALUES --- */
 
 	/* When the TargetedActor is set, this is true. Otherwise it is false. */
 	bool bIsTargeting;
@@ -395,12 +338,18 @@ public:
 	  */
 	UFUNCTION(BlueprintCallable, Category = "Setters")
 	void SetPivotParameters(FPivotParameters NewPivotParameters);
-	
-	/** Sets bIsSitting to NewIsSitting.
-	  * @param NewIsSitting - NewIsSitting to set.
+
+	/** Sets UpperBodyLayeringIndex to NewUpperBodyLayeringIndex.
+	  * @param NewUpperBodyLayeringIndex - UpperBodyLayeringIndex to set.
 	  */
 	UFUNCTION(BlueprintCallable, Category = "Setters")
-	void SetIsSitting(bool NewIsSitting);
+	void SetUpperBodyLayeringIndex(int32 NewUpperBodyLayeringIndex);
+
+	/** Sets UpperBodyLayeringIndex to NewUpperBodyLayeringIndex.
+	 * @param NewUpperBodyLayeringIndex - UpperBodyLayeringIndex to set.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Setters")
+	void SetFullBodyLayeringIndex(int32 NewFullBodyLayeringIndex);
 
 	/** Sets bShouldUseHeadRotation to NewUseHeadRotation.
 	  * @param NewUseHeadRotation - New bShouldUseHeadRotation to set.
@@ -414,57 +363,6 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Setters")
 	void SetHeadLookAtLocation(FVector NewHeadLookAtLocation);
 
-	/* --- START DEPCREATED --- */
-	/** Sets bIsHavingPhoneConversation to NewIsHavingPhoneConversation.
-	  */
-	UFUNCTION(BlueprintCallable, Category = "Setters")
-	void SetIsHavingPhoneConversation(bool NewIsHavingPhoneConversation);
-	/* --- END DEPCREATED --- */
-
-	/** Sets LocomotionActivity to NewLocomotionActivity.
-	  * @param NewLocomotionActivity - ELocomotionActivity to set.
-	  */
-	UFUNCTION(BlueprintCallable, Category = "Setters")
-	void SetLocomotionActivity(ELocomotionActivity NewLocomotionActivity);
-
-	/** Sets LocomotionAcitivtyPrev to NewLocomotionActivityPrev.
-	 * @param NewLocomotionActivityPrev - ELocomotionActivity to set.
-	  */
-	UFUNCTION(BlueprintCallable, Category = "Setters")
-	void SetLocomotionActivityPrev(ELocomotionActivity NewLocomotionActivityPrev);
-
-	/* --- START DEPCREATED --- */
-	/** Sets TargetedActor to ActorToSet. 
-	  * @param ActorToSet - Reference to targeted actor.
-	  */
-	UFUNCTION(BlueprintCallable, Category = "Setters")
-	void SetTargetedActor(AActor* ActorToSet);
-
-	/** Sets WeaponFireMode to NewWeaponFireMode.
-	  * @param NewWeaponFireMode - EWeaponFireMode to set.
-	  */
-	UFUNCTION(BlueprintCallable, Category = "Setters")
-	void SetWeaponFireMode(EWeaponFireMode NewWeaponFireMode);
-
-	/** Sets WeaponType to NewWeaponType. 
-	  * @param NewWeaponType - EWeaponType to set.
-	  */
-	UFUNCTION(BlueprintCallable, Category = "Setters")
-	void SetWeaponType(EWeaponType NewWeaponType);
-
-	/** Sets WeaponState to NewWeaponState. 
-	  * @param NewWeaponState - EWeaponState to set.
-	  */
-	UFUNCTION(BlueprintCallable, Category = "Setters")
-	void SetWeaponState(EWeaponState NewWeaponState);
-
-	/** Sets bShouldFire to new ShouldFire
-	  * @param NewShouldFire - Whether the character should fire or not.
-	  */
-	UFUNCTION(BlueprintCallable, Category = "Setters")
-	void SetShouldFire(bool NewShouldFire);
-	/* --- END DEPRECATED --- */
-
 	/* --- ANIM MONTAGES --- */
 
 	/** Returns the wall climb asset data for a given type of WallClimbType.
@@ -472,13 +370,6 @@ public:
 	  * @return A FWallClimbAssetData struct containing relevant information.
 	  */
 	FWallClimbAssetData GetWallClimbDataFromType(EWallClimbType WallClimbType);
-
-	/* --- START DEPCREATED --- */
-	/** Play a weapon montaged based on the current EWeaponType.
-	  * @param SectionName - The section name on the montage to jump to. Only words if IsValidSection(SectionName) = true.
-	  */
-	void PlayWeaponMontages(FName SectionName);
-	/* --- END DEPCREATED --- */
 
 	/** This function is intended to be called from UTurningInPlaceNotifyState. It updates ActiveAnimMontage,
 	  * bShouldTurnInPlace, bTurningInPlace and bTurningRight.
@@ -531,22 +422,13 @@ protected:
 private:
 	/* --- PRIVATE FUNCTIONS USED ONLY FOR ANIMATION LOGIC --- */
 
-	/* --- DEPRACATED: USE CharacterReference->GetMovementProperties() instead --- */
-	/** This updates the variables from LocomotionCharacterReference to this class. */
-	// void SetVariablesFromLocomotionCharacter();
-	/* --- END DEPRACATED --- */
-
 	/** This updates AimOffset based on either the camera direction or the
 	  * direction the character is moving in, depending on RotationMode.
 	  */
 	void CalculateLookingAimOffset();
 
-	/** Calculate LookAtAimOffset when bIsTargeting is true and TargetedActor != nullptr.
-	  * Generally, this should happen when the owner of this anim instance is targeting another actor.
+	/** Calculates the value of the head rotation. Only relevant if bShouldUseHeadRotation = true.
 	  */
-	void CalculateTargetingAimOffset();
-
-	/** Calculates the value of the head rotation. Only relevant if bShouldUseHeadRotation = true. */
 	void CalculateHeadRotation();
 
 	/** This calculates GaitMultiplier, which is a value between 0.0f to 3.0f,
@@ -563,8 +445,9 @@ private:
 	  * @param RunAnimSpeed - The character's running speed.
 	  * @param SprintAnimSpeed - The character's sprinting speed.
 	  * @param CrouchAnimSpeed - The character's crouched speed.
+	  * @param CapsuleComponent - The character's capsule component.
 	  */
-	void CalculateAnimPlayRates(float WalkAnimSpeed, float RunAnimSpeed, float SprintAnimSpeed, float CrouchAnimSpeed);
+	void CalculateAnimPlayRates(float WalkAnimSpeed, float RunAnimSpeed, float SprintAnimSpeed, float CrouchAnimSpeed, class UCapsuleComponent* CapsuleComponentReference);
 
 	/** This sets MovementDirection to either Forward or Backward, depending on Direction. The buffer is how much tolerance there
 	  * is over the threshold, mostly so that MovementDirection does not flip-flop when Direction is right on the threshold.
@@ -573,16 +456,6 @@ private:
 	  * @param Buffer - Added tolerance to the direction threshold range.
 	  */
 	void CalculateMovementDirection(float DirectionThresholdMin, float DirectionThresholdMax, float Buffer);
-
-	/** Calculates WeaponAimOffsetAlpha, to ensure the aim offset smoothly interpolates when raising a weapon while being instantly turned off
-	  * when lowering a weapon 
-	  */
-	void CalculateWeaponAimAlpha();
-
-	/** Calculates FABRIK Alpha, which adjusts the left hand to always hold a designated left hand socket on gun meshes. 
-	  * Does nothing if such a socket does not exist. 
-	  */
-	void CalculateFabrikAdjustAndAlpha();
 
 	/** Instantly plays a turn right or turn left anim montage, assuming they are not already turning. This function will 
 	  * also interrupt and play  the opposite anim montage if the character turns around suddenly. 
